@@ -25,9 +25,6 @@
 					     social card are wiki-side fields the repo never carries, so
 					     they are still this app's to edit. -->
 					<CommentsButton v-if="wikiDoc.doc" :page-id="wikiDoc.doc.name" />
-					<ExportButton v-if="wikiDoc.doc" :page-id="wikiDoc.doc.name" />
-					<PageAccessButton v-if="wikiDoc.doc" :page-id="wikiDoc.doc.name" />
-					<ShareButton v-if="wikiDoc.doc" :page-id="wikiDoc.doc.name" />
 					<Tooltip :text="__('Page settings')">
 						<Button
 							:variant="showPageSettings ? 'subtle' : 'ghost'"
@@ -125,6 +122,7 @@
 					@node-updated="loadCrPage"
 				/>
 			</div>
+			<ShareDialog v-if="wikiDoc.doc" ref="shareDialog" :page-id="wikiDoc.doc.name" />
 		</div>
 
 		<!-- Content skeleton -->
@@ -211,6 +209,7 @@ import { SPACE_TREE_KEY, crumbRoute, trailToNode } from '@/lib/spaceTree';
 import { useChangeRequestStore } from '@/stores/changeRequest';
 import { useDraftWorkspaceStore } from '@/stores/draftWorkspace';
 import { useSpaceStore } from '@/stores/space';
+import { useUserStore } from '@/stores/user';
 import {
 	Badge,
 	Breadcrumbs,
@@ -232,9 +231,7 @@ import { useRecentPages } from '../composables/useRecentPages';
 import PageMetaLine from './PageMetaLine.vue';
 import PageSettingsPanel from './PageSettingsPanel.vue';
 import CommentsButton from './CommentsButton.vue';
-import ExportButton from './ExportButton.vue';
-import PageAccessButton from './PageAccessButton.vue';
-import ShareButton from './ShareButton.vue';
+import ShareDialog from './ShareDialog.vue';
 import SubmitForReviewButton from './SubmitForReviewButton.vue';
 import WikiEditor from './WikiEditor.vue';
 
@@ -268,6 +265,8 @@ const router = useRouter();
 const crStore = useChangeRequestStore();
 const draftStore = useDraftWorkspaceStore();
 const spaceStore = useSpaceStore();
+const userStore = useUserStore();
+const shareDialog = ref(null);
 const { recordVisit } = useRecentPages();
 
 // frappe-ui caches document resources by (doctype, name), so revisiting an
@@ -539,6 +538,12 @@ const githubEditUrl = computed(() => {
 	});
 });
 
+function downloadMarkdown() {
+	const name = wikiDoc.value.doc?.name;
+	if (!name) return;
+	window.location.href = `/api/method/wiki.api.export.page_markdown?docname=${encodeURIComponent(name)}`;
+}
+
 const menuOptions = computed(() => {
 	const options = [];
 	// A synced page has no editable state here — the repo owns it, and the
@@ -557,6 +562,20 @@ const menuOptions = computed(() => {
 			},
 		);
 	}
+	// Share and download join the existing actions menu instead of a second row
+	// of icon buttons in the header.
+	if (userStore.isWikiManager) {
+		options.push({
+			label: __('Share'),
+			icon: 'lucide-link',
+			onClick: () => shareDialog.value?.open(),
+		});
+	}
+	options.push({
+		label: __('Download as Markdown'),
+		icon: 'lucide-download',
+		onClick: downloadMarkdown,
+	});
 	if (!props.readonly) {
 		options.push({
 			label: __('Delete'),

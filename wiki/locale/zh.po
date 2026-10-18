@@ -5266,3 +5266,22 @@ msgstr "从模板开始"
 
 msgid "Blank page"
 msgstr "空白页"
+
+#: consolidation pass (access in page settings, snippet templates, blog entry)
+msgid "Inherited from the space:"
+msgstr "继承自空间："
+
+msgid "This page"
+msgstr "本页面"
+
+msgid "Save access"
+msgstr "保存访问权限"
+
+msgid "Use as page template"
+msgstr "用作页面模板"
+
+msgid "Open the blog"
+msgstr "打开博客"
+
+msgid "A separate public site at /blog, indexed by search engines. Posts are written in Desk → Blog Post."
+msgstr "位于 /blog 的独立公开站点，可被搜索引擎收录。文章在「Desk → Blog Post」中撰写。"

@@ -198,6 +198,75 @@
 					</div>
 				</section>
 
+				<!-- Access lives here, next to the page's other settings, instead of a
+				     second toolbar dialog: the space's inherited grant is shown above
+				     the page's own override, so the two systems read as one. -->
+				<section class="flex flex-col gap-3 border-t border-outline-gray-2 pt-4">
+					<h4 class="text-xs text-ink-gray-5">{{ __('Access') }}</h4>
+					<p class="text-xs text-ink-gray-5">
+						{{ __('Inherited from the space:') }}
+						<span class="text-ink-gray-7">{{ inheritedAccess }}</span>
+					</p>
+
+					<template v-if="canEditAccess">
+						<div class="flex flex-col gap-1.5">
+							<label class="text-sm text-ink-gray-7">{{ __('This page') }}</label>
+							<Select
+								:model-value="accessMode"
+								:options="accessModeOptions"
+								:aria-label="__('This page')"
+								@update:model-value="accessMode = $event"
+							/>
+						</div>
+						<div
+							v-if="accessMode === 'Restricted'"
+							class="flex flex-col gap-3 rounded-8 border border-outline-gray-2 p-3"
+						>
+							<div class="flex flex-col gap-1.5">
+								<label class="text-sm text-ink-gray-7">{{ __('Roles') }}</label>
+								<MultiSelect
+									v-model="accessRoles"
+									:options="roleOptions"
+									:placeholder="__('Choose roles')"
+									:aria-label="__('Roles')"
+								/>
+							</div>
+							<div class="flex flex-col gap-1.5">
+								<label class="text-sm text-ink-gray-7">{{ __('People') }}</label>
+								<MultiSelect
+									v-model="accessUsers"
+									:options="userOptions"
+									:placeholder="__('Choose people')"
+									:aria-label="__('People')"
+								/>
+							</div>
+							<div class="flex flex-col gap-1.5">
+								<label class="text-sm text-ink-gray-7">{{ __('Level') }}</label>
+								<Select
+									v-model="accessLevel"
+									:options="accessLevelOptions"
+									:aria-label="__('Level')"
+								/>
+							</div>
+							<p class="text-xs text-ink-gray-4">
+								{{ __('Child pages inherit this list. Wiki managers always keep access.') }}
+							</p>
+						</div>
+						<Button
+							variant="subtle"
+							class="self-start"
+							:loading="savingAccess"
+							:disabled="accessMode === 'Restricted' && !accessRoles.length && !accessUsers.length"
+							@click="saveAccess"
+						>
+							{{ __('Save access') }}
+						</Button>
+					</template>
+					<p v-else class="text-xs text-ink-gray-4">
+						{{ __('Only wiki managers can change who can read this page.') }}
+					</p>
+				</section>
+
 				<section class="flex flex-col gap-2">
 					<h4 class="text-xs text-ink-gray-5">{{ __('Details') }}</h4>
 					<dl class="flex flex-col gap-2 text-sm">
@@ -261,9 +330,13 @@ import {
 	Badge,
 	Button,
 	FormControl,
+	MultiSelect,
 	ScrollArea,
+	Select,
 	Switch,
 	Tooltip,
+	createListResource,
+	createResource,
 	dayjsLocal,
 	toast,
 	useFileUpload,
@@ -319,6 +392,130 @@ const fileUploader = useFileUpload();
 const isSaving = ref(false);
 const isUploadingImage = ref(false);
 const imageInput = ref(null);
+
+// --- Access (the page's own overlay on the space's inherited grant) --------
+const ACCESS_LEVEL_RANK = { Read: 1, Write: 2, Admin: 3 };
+const accessMode = ref('Inherit');
+const accessLevel = ref('Read');
+const accessRoles = ref([]);
+const accessUsers = ref([]);
+const canEditAccess = ref(false);
+const savingAccess = ref(false);
+
+const accessModeOptions = computed(() => [
+	{ label: __('Inherit the space'), value: 'Inherit' },
+	{ label: __('Only the people and roles below'), value: 'Restricted' },
+]);
+const accessLevelOptions = computed(() => [
+	{ label: __('Read only'), value: 'Read' },
+	{ label: __('Read and edit'), value: 'Write' },
+	{ label: __('Read, edit and manage access'), value: 'Admin' },
+]);
+
+const pageName = computed(() => props.docResource?.doc?.name || null);
+
+// What the page would inherit: the space's visibility and its role grants, so
+// "Inherit" is not an empty promise in the panel.
+const inheritedAccess = computed(() => {
+	const space = spaceStore.doc;
+	if (!space) return __('the space settings');
+	const visibility = space.visibility || 'Logged in';
+	const roles = (space.roles || []).map(
+		(role) => `${role.role} (${role.permission_level})`,
+	);
+	return roles.length ? `${visibility} · ${roles.join(', ')}` : visibility;
+});
+
+const accessState = createResource({
+	url: 'wiki.api.access.get_page_access',
+	makeParams: () => ({ docname: pageName.value }),
+});
+const accessSave = createResource({
+	url: 'wiki.api.access.update_page_access',
+	onSuccess: (data) => applyAccess(data),
+	onError: (err) =>
+		toast.error(err?.messages?.[0] || __('Could not save access.')),
+});
+const rolesList = createListResource({
+	doctype: 'Role',
+	fields: ['name'],
+	pageLength: 999,
+	auto: false,
+});
+const usersList = createListResource({
+	doctype: 'User',
+	fields: ['name', 'full_name'],
+	filters: { enabled: 1 },
+	pageLength: 999,
+	auto: false,
+});
+const roleOptions = computed(() =>
+	(rolesList.data || []).map((role) => ({ label: role.name, value: role.name })),
+);
+const userOptions = computed(() =>
+	(usersList.data || [])
+		.filter((user) => user.name !== 'Administrator' && user.name !== 'Guest')
+		.map((user) => ({ label: user.full_name || user.name, value: user.name })),
+);
+
+function applyAccess(data) {
+	accessMode.value = data?.mode || 'Inherit';
+	canEditAccess.value = Boolean(data?.can_edit);
+	accessRoles.value = [];
+	accessUsers.value = [];
+	let strongest = 'Read';
+	for (const entry of data?.entries || []) {
+		if (entry.subject_type === 'Role') accessRoles.value.push(entry.role);
+		else accessUsers.value.push(entry.user);
+		if ((ACCESS_LEVEL_RANK[entry.level] || 0) > (ACCESS_LEVEL_RANK[strongest] || 0)) {
+			strongest = entry.level;
+		}
+	}
+	accessLevel.value = strongest;
+}
+
+async function loadAccess() {
+	if (!pageName.value) return;
+	try {
+		applyAccess(await accessState.fetch());
+		if (canEditAccess.value) {
+			rolesList.fetch();
+			usersList.fetch();
+		}
+	} catch {
+		// A page the reader cannot manage simply keeps the inherited line.
+	}
+}
+
+async function saveAccess() {
+	savingAccess.value = true;
+	const entries = [
+		...accessRoles.value.map((role) => ({
+			subject_type: 'Role',
+			role,
+			level: accessLevel.value,
+		})),
+		...accessUsers.value.map((user) => ({
+			subject_type: 'User',
+			user,
+			level: accessLevel.value,
+		})),
+	];
+	try {
+		applyAccess(
+			await accessSave.submit({
+				docname: pageName.value,
+				mode: accessMode.value,
+				entries,
+			}),
+		);
+		toast.success(__('Access saved'));
+	} finally {
+		savingAccess.value = false;
+	}
+}
+
+watch(pageName, loadAccess, { immediate: true });
 
 const form = reactive({
 	title: '',

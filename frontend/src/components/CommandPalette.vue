@@ -145,6 +145,7 @@ import {
 import { computed, nextTick, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import { useAssistant } from '../composables/useAssistant';
 import { useCommandPalette } from '../composables/useCommandPalette';
 import { useNewPageRequest } from '../composables/useNewPageRequest';
 import { useNewSpaceRequest } from '../composables/useNewSpaceRequest';
@@ -161,6 +162,7 @@ const userStore = useUserStore();
 const sessionStore = useSessionStore();
 const spaceStore = useSpaceStore();
 const { showCommandPalette, close, toggle } = useCommandPalette();
+const { ask: askAssistant } = useAssistant();
 const { open: openWikiSettings } = useWikiSettings();
 const { open: openSpaceSettings } = useSpaceSettings();
 const { themeIcon, toggleTheme, setTheme } = useTheme();
@@ -319,6 +321,19 @@ const canCreatePage = computed(
 );
 
 const actionItems = computed(() => [
+	// The question the user typed doubles as the assistant's first question, so
+	// "search" and "ask" are the same gesture: type, then pick 问知识库.
+	...(query.value.trim()
+		? [
+				{
+					key: 'ask',
+					label: `${__('Ask the knowledge base')}：${query.value.trim()}`,
+					search: query.value.trim(),
+					icon: 'lucide-sparkles',
+					onClick: (typed) => askAssistant(typed),
+				},
+			]
+		: []),
 	...(canCreatePage.value
 		? [
 				{
@@ -463,8 +478,11 @@ function move(step) {
 }
 
 function select(item) {
+	// Capture the typed query before closing: the dialog's close handler resets
+	// it, and an "ask" action needs to hand it to the assistant.
+	const typed = query.value;
 	close();
-	if (item.onClick) item.onClick();
+	if (item.onClick) item.onClick(typed);
 	else router.push(item.route);
 }
 

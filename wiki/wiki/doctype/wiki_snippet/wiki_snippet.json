@@ -11,6 +11,7 @@
   "title",
   "content",
   "keywords",
+  "is_template",
   "wiki_space"
  ],
  "fields": [
@@ -33,6 +34,13 @@
    "fieldname": "keywords",
    "fieldtype": "Data",
    "label": "Keywords"
+  },
+  {
+   "default": "0",
+   "description": "Offer this snippet as a starting point when creating a page.",
+   "fieldname": "is_template",
+   "fieldtype": "Check",
+   "label": "Use as page template"
   },
   {
    "description": "Reserved for space-shared snippets. The field exists so sharing is additive; v1 neither sets nor reads it.",

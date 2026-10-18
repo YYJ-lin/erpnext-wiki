@@ -1,7 +1,7 @@
 import { useDraftWorkspaceStore } from '@/stores/draftWorkspace';
 import { slugify } from '@/stores/draftWorkspace/utils';
 import { useDebounceFn } from '@vueuse/core';
-import { createListResource, createResource, toast } from 'frappe-ui';
+import { createResource, toast } from 'frappe-ui';
 import { ref, unref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -25,14 +25,10 @@ export function useTreeDialogs(
 	const createRoutePrefix = ref('');
 	const createRouteError = ref('');
 	const routeManuallyEdited = ref(false);
-	// Optional starting point for a new page. The content travels with the create
-	// call, so the draft buffer is seeded in one round-trip.
-	const templates = createListResource({
-		doctype: 'Wiki Template',
-		fields: ['name', 'title', 'description', 'content'],
-		filters: { is_active: 1 },
-		order_by: 'sort_order asc, title asc',
-		pageLength: 100,
+	// Page starters are snippets marked "use as page template" — one content-reuse
+	// concept, not a parallel template doctype.
+	const templates = createResource({
+		url: 'wiki.api.snippets.list_page_templates',
 		auto: false,
 	});
 	const createTemplateId = ref('');

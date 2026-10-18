@@ -111,7 +111,7 @@
 				<div class="space-y-4">
 					<FormControl v-model="createTitle" :label="__('Title')" type="text"
 						:placeholder="createPlaceholder" autofocus />
-					<FormControl v-if="!createIsGroup && templateOptions.length" :label="__('Start from a template')"
+					<FormControl v-if="!createIsGroup && (templates.data || []).length" :label="__('Start from a template')"
 						type="select" :model-value="createTemplateId" :options="templateOptions"
 						@update:model-value="createTemplateId = $event" />
 					<div>

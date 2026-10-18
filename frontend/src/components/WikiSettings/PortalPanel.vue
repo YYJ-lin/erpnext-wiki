@@ -128,6 +128,21 @@
 			<p v-else class="text-p-sm text-ink-gray-5">{{ __('No featured spaces yet.') }}</p>
 		</div>
 
+		<SettingsRow
+			:title="__('Blog')"
+			:description="__('A separate public site at /blog, indexed by search engines. Posts are written in Desk → Blog Post.')"
+		>
+			<a
+				href="/blog"
+				target="_blank"
+				rel="noopener"
+				class="flex items-center gap-1.5 text-sm text-ink-blue-link hover:underline"
+			>
+				{{ __('Open the blog') }}
+				<span class="lucide-external-link size-3.5" aria-hidden="true" />
+			</a>
+		</SettingsRow>
+
 		<div class="flex items-center justify-end gap-2 border-t border-outline-gray-1 pt-3">
 			<Badge v-if="isDirty" theme="amber" size="sm">{{ __('Unsaved changes') }}</Badge>
 			<Button

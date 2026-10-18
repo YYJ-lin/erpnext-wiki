@@ -12,10 +12,20 @@ def get_context(context):
 		raise frappe.Redirect
 
 	context.no_cache = 1
+	context.hide_chrome = True
 	context.page_title = post["title"]
 	context.meta_description = post["description"]
 	context.canonical_url = frappe.utils.get_url(post["url"])
 	context.og_image = post.get("meta_image") or post.get("cover_image")
+	context.metatags = {
+		"description": post["description"],
+		"og:type": "article",
+		"og:title": post["title"],
+		"og:description": post["description"],
+		"og:url": context.canonical_url,
+	}
+	if context.og_image:
+		context.metatags["og:image"] = frappe.utils.get_url(context.og_image)
 	context.post = post
 	context.post_html = blog.html(post)
 	context.body_class = "blog-post"

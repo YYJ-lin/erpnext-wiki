@@ -1,15 +1,5 @@
 <template>
-	<button
-		type="button"
-		class="fixed right-6 z-40 flex h-11 items-center gap-2 rounded-full bg-surface-gray-10 px-4 text-sm font-medium text-ink-base shadow-lg transition-colors hover:bg-surface-gray-9"
-		:class="isMobile ? 'bottom-24' : 'bottom-6'"
-		@click="open = true"
-	>
-		<span class="lucide-sparkles size-4" aria-hidden="true" />
-		{{ __('Ask') }}
-	</button>
-
-	<Dialog v-model:open="open" size="md">
+	<Dialog :open="open" size="md" @update:open="close">
 		<template #title>
 			<h3 class="text-2xl-semibold text-ink-gray-9">{{ __('Ask the knowledge base') }}</h3>
 		</template>
@@ -40,7 +30,7 @@
 							<a
 								:href="source.url"
 								class="text-sm text-ink-blue-link hover:underline"
-								@click="open = false"
+								@click="close"
 							>
 								{{ index + 1 }}. {{ source.title }}
 							</a>
@@ -51,8 +41,8 @@
 				<ErrorMessage :message="error" />
 			</div>
 		</template>
-		<template #actions="{ close }">
-			<Button variant="outline" @click="close">{{ __('Close') }}</Button>
+		<template #actions="{ close: closeDialog }">
+			<Button variant="outline" @click="closeDialog">{{ __('Close') }}</Button>
 			<Button
 				variant="solid"
 				:loading="asking"
@@ -67,12 +57,11 @@
 
 <script setup>
 import { Button, Dialog, ErrorMessage, FormControl, createResource } from 'frappe-ui';
-import { ref } from 'vue';
-import { useMobile } from '../composables/useMobile';
+import { ref, watch } from 'vue';
+import { useAssistant } from '../composables/useAssistant';
 
-const { isMobile } = useMobile();
+const { open, initialQuestion, close } = useAssistant();
 
-const open = ref(false);
 const question = ref('');
 const answer = ref('');
 const mode = ref('');
@@ -104,4 +93,20 @@ async function send() {
 		asking.value = false;
 	}
 }
+
+// Opening from the palette may carry the typed question: prefill and ask, so the
+// user does not retype what they already wrote in the search box.
+watch(open, (isOpen) => {
+	if (!isOpen) return;
+	error.value = '';
+	answer.value = '';
+	mode.value = '';
+	sources.value = [];
+	if (initialQuestion.value) {
+		question.value = initialQuestion.value;
+		send();
+	} else {
+		question.value = '';
+	}
+});
 </script>

@@ -66,6 +66,11 @@
 						type="textarea"
 						:placeholder="__('Snippet content')"
 					/>
+					<FormControl
+						v-model="draftIsTemplate"
+						type="checkbox"
+						:label="__('Use as page template')"
+					/>
 				</div>
 			</div>
 		</template>
@@ -108,7 +113,7 @@ const picker = useSnippetPickerStore();
 // shows a library that is one edit behind.
 const snippets = createListResource({
 	doctype: 'Wiki Snippet',
-	fields: ['name', 'title', 'keywords', 'content'],
+	fields: ['name', 'title', 'keywords', 'content', 'is_template'],
 	orderBy: 'title asc',
 	pageLength: 100,
 	auto: true,
@@ -119,6 +124,7 @@ const selected = ref(0);
 const editing = ref(null);
 const draftTitle = ref('');
 const draftContent = ref('');
+const draftIsTemplate = ref(false);
 const confirmingDelete = ref(false);
 const searchInput = ref(null);
 
@@ -157,6 +163,7 @@ function resetForm() {
 	creating.value = false;
 	draftTitle.value = '';
 	draftContent.value = '';
+	draftIsTemplate.value = false;
 	confirmingDelete.value = false;
 }
 
@@ -170,6 +177,7 @@ function startEdit(snippet) {
 	editing.value = snippet;
 	draftTitle.value = snippet.title || '';
 	draftContent.value = snippet.content || '';
+	draftIsTemplate.value = Boolean(snippet.is_template);
 }
 
 function cancelForm() {
@@ -197,6 +205,7 @@ function payload() {
 	return {
 		title: draftTitle.value.trim(),
 		content: draftContent.value,
+		is_template: draftIsTemplate.value ? 1 : 0,
 	};
 }
 

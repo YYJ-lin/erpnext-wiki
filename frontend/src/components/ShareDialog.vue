@@ -1,10 +1,4 @@
 <template>
-	<Tooltip :text="__('Share')">
-		<Button variant="ghost" :aria-label="__('Share')" @click="openDialog">
-			<span class="lucide-link size-4" aria-hidden="true" />
-		</Button>
-	</Tooltip>
-
 	<Dialog v-model:open="open" size="sm">
 		<template #title>
 			<h3 class="text-2xl-semibold text-ink-gray-9">{{ __('Share this page') }}</h3>
@@ -53,7 +47,7 @@
 </template>
 
 <script setup>
-import { Button, Dialog, ErrorMessage, Switch, TextInput, Tooltip, createResource } from 'frappe-ui';
+import { Button, Dialog, ErrorMessage, Switch, TextInput, createResource } from 'frappe-ui';
 import { ref } from 'vue';
 
 const props = defineProps({
@@ -110,7 +104,6 @@ async function toggle(value) {
 	try {
 		apply(await update.submit({ docname: props.pageId, enabled: value ? 1 : 0 }));
 	} catch {
-		// onError already surfaced a message; keep the dialog on its last known state.
 		enabled.value = Boolean(value) === false;
 	}
 }
@@ -135,4 +128,6 @@ async function copy() {
 		error.value = __('Could not copy the link. Select it and copy manually.');
 	}
 }
+
+defineExpose({ open: openDialog });
 </script>

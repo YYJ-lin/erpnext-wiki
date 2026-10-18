@@ -98,7 +98,7 @@
 
 		<WikiSettings v-model="showWikiSettings" :initial-tab="initialTab" />
 		<CommandPalette v-if="hasAccess" />
-		<AssistantButton v-if="hasAccess" />
+		<AssistantDialog v-if="hasAccess" />
 	</div>
 </template>
 
@@ -108,7 +108,7 @@ import { DesktopShell, MobileNav, MobileNavItem, MobileShell } from 'frappe-ui';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import CommandPalette from '../components/CommandPalette.vue';
-import AssistantButton from '../components/AssistantButton.vue';
+import AssistantDialog from '../components/AssistantDialog.vue';
 import TopBar from '../components/TopBar.vue';
 import LibrarySidebar from '../components/LibrarySidebar.vue';
 import SpaceSidebar from '../components/SpaceSidebar.vue';

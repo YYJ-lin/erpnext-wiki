@@ -11,11 +11,21 @@ def get_context(context):
 	posts = blog.published(limit=PER_PAGE, offset=(page - 1) * PER_PAGE)
 
 	context.no_cache = 1
+	context.hide_chrome = True
 	context.page_title = "博客"
 	context.meta_description = "产品更新、使用教程与实践分享。"
 	# `canonical` is a reserved key — Frappe's page renderer overwrites it with the
 	# resolved route, so a custom page must use its own key to survive.
 	context.canonical_url = frappe.utils.get_url("/blog" if page == 1 else f"/blog?page={page}")
+	# The shared page layout renders these through meta_block.html, so the blog
+	# speaks the same meta language as the portal and the reader.
+	context.metatags = {
+		"description": context.meta_description,
+		"og:type": "website",
+		"og:title": "博客 · 知识库",
+		"og:description": context.meta_description,
+		"og:url": context.canonical_url,
+	}
 	context.posts = posts
 	context.page_number = page
 	context.has_next = len(posts) == PER_PAGE
